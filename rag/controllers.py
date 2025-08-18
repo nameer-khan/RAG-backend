@@ -2,10 +2,9 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
-from .services import RAGPipelineService, KnowledgeBaseService, NubiousRAGService
+from .services import RAGPipelineService, NubiousRAGService
 from .serializers import (
-    KnowledgeBaseSerializer, CreateKnowledgeBaseSerializer, DocumentSerializer,
-    CreateDocumentSerializer, RAGQuerySerializer, RAGQueryListSerializer
+    DocumentSerializer, CreateDocumentSerializer, RAGQuerySerializer, RAGQueryListSerializer
 )
 
 
@@ -21,7 +20,7 @@ class RAGController:
         try:
             # Validate required fields
             query = request_data.get('query')
-            knowledge_base_id = request_data.get('knowledge_base_id')
+            document_category = request_data.get('document_category')
             conversation_history = request_data.get('conversation_history', [])
             
             if not query or not query.strip():
@@ -31,18 +30,11 @@ class RAGController:
                     'status': status.HTTP_400_BAD_REQUEST
                 }
             
-            if not knowledge_base_id:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base ID is required',
-                    'status': status.HTTP_400_BAD_REQUEST
-                }
-            
             # Process the RAG query
             result = self.rag_service.process_query(
                 user=user,
                 query=query.strip(),
-                knowledge_base_id=knowledge_base_id,
+                document_category=document_category,
                 conversation_history=conversation_history
             )
             
@@ -53,9 +45,9 @@ class RAGController:
                     'status': status.HTTP_500_INTERNAL_SERVER_ERROR
                 }
             
-            serializer = RAGQuerySerializer(result)
+            # Return the result directly since it's already a dictionary with the response data
             return {
-                'data': serializer.data,
+                'data': result,
                 'message': 'RAG query processed successfully',
                 'status': status.HTTP_200_OK
             }
@@ -72,7 +64,7 @@ class RAGController:
             # Get pagination parameters
             page = request.query_params.get('page', 1)
             page_size = request.query_params.get('page_size', 20)
-            knowledge_base_id = request.query_params.get('knowledge_base_id')
+            document_category = request.query_params.get('document_category')
             
             try:
                 page = int(page)
@@ -88,7 +80,7 @@ class RAGController:
                 user=user,
                 page=page,
                 page_size=page_size,
-                knowledge_base_id=knowledge_base_id
+                document_category=document_category
             )
             
             serializer = RAGQueryListSerializer(queries, many=True)
@@ -121,170 +113,58 @@ class RAGController:
             }
 
 
-class KnowledgeBaseController:
-    """Controller for knowledge base business logic"""
-    
-    def __init__(self):
-        self.kb_service = KnowledgeBaseService()
-    
-    def list_knowledge_bases(self, user, request):
-        """Get all knowledge bases for a user"""
-        try:
-            knowledge_bases = self.kb_service.get_user_knowledge_bases(user)
-            serializer = KnowledgeBaseSerializer(knowledge_bases, many=True)
-            
-            return {
-                'data': serializer.data,
-                'message': 'Knowledge bases retrieved successfully',
-                'status': status.HTTP_200_OK
-            }
-        except Exception as e:
-            return {
-                'data': None,
-                'message': f'Failed to retrieve knowledge bases: {str(e)}',
-                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
-            }
-    
-    def create_knowledge_base(self, user, request_data):
-        """Create a new knowledge base"""
-        try:
-            serializer = CreateKnowledgeBaseSerializer(data=request_data)
-            if not serializer.is_valid():
-                return {
-                    'data': None,
-                    'message': 'Invalid data provided',
-                    'status': status.HTTP_400_BAD_REQUEST,
-                    'errors': serializer.errors
-                }
-            
-            knowledge_base = self.kb_service.create_knowledge_base(
-                user=user,
-                name=serializer.validated_data['name'],
-                description=serializer.validated_data.get('description', '')
-            )
-            
-            response_serializer = KnowledgeBaseSerializer(knowledge_base)
-            return {
-                'data': response_serializer.data,
-                'message': 'Knowledge base created successfully',
-                'status': status.HTTP_201_CREATED
-            }
-        except Exception as e:
-            return {
-                'data': None,
-                'message': f'Failed to create knowledge base: {str(e)}',
-                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
-            }
-    
-    def get_knowledge_base(self, user, kb_id):
-        """Get a specific knowledge base"""
-        try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
-            serializer = KnowledgeBaseSerializer(knowledge_base)
-            return {
-                'data': serializer.data,
-                'message': 'Knowledge base retrieved successfully',
-                'status': status.HTTP_200_OK
-            }
-        except Exception as e:
-            return {
-                'data': None,
-                'message': f'Failed to retrieve knowledge base: {str(e)}',
-                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
-            }
-    
-    def update_knowledge_base(self, user, kb_id, request_data):
-        """Update a knowledge base"""
-        try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
-            serializer = KnowledgeBaseSerializer(knowledge_base, data=request_data, partial=True)
-            if not serializer.is_valid():
-                return {
-                    'data': None,
-                    'message': 'Invalid data provided',
-                    'status': status.HTTP_400_BAD_REQUEST,
-                    'errors': serializer.errors
-                }
-            
-            updated_kb = self.kb_service.update_knowledge_base(knowledge_base, serializer.validated_data)
-            response_serializer = KnowledgeBaseSerializer(updated_kb)
-            
-            return {
-                'data': response_serializer.data,
-                'message': 'Knowledge base updated successfully',
-                'status': status.HTTP_200_OK
-            }
-        except Exception as e:
-            return {
-                'data': None,
-                'message': f'Failed to update knowledge base: {str(e)}',
-                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
-            }
-    
-    def delete_knowledge_base(self, user, kb_id):
-        """Soft delete a knowledge base"""
-        try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
-            self.kb_service.delete_knowledge_base(knowledge_base)
-            return {
-                'data': None,
-                'message': 'Knowledge base deleted successfully',
-                'status': status.HTTP_204_NO_CONTENT
-            }
-        except Exception as e:
-            return {
-                'data': None,
-                'message': f'Failed to delete knowledge base: {str(e)}',
-                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
-            }
-
-
 class DocumentController:
     """Controller for document management business logic"""
     
     def __init__(self):
         self.rag_service = RAGPipelineService()
-        self.kb_service = KnowledgeBaseService()
     
-    def list_documents(self, user, kb_id, request):
-        """Get all documents in a knowledge base"""
+    def list_documents(self, user, request):
+        """Get all documents for a user"""
         try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
+            # Get pagination and filter parameters
+            page = request.query_params.get('page', 1)
+            page_size = request.query_params.get('page_size', 20)
+            category = request.query_params.get('category')
+            
+            try:
+                page = int(page)
+                page_size = int(page_size)
+            except ValueError:
                 return {
                     'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
+                    'message': 'Invalid pagination parameters',
+                    'status': status.HTTP_400_BAD_REQUEST
                 }
             
-            documents = self.rag_service.get_knowledge_base_documents(knowledge_base)
+            documents, total_count = self.rag_service.get_user_documents(
+                user=user,
+                category=category,
+                page=page,
+                page_size=page_size
+            )
+            
             serializer = DocumentSerializer(documents, many=True)
+            
+            # Calculate pagination metadata
+            total_pages = (total_count + page_size - 1) // page_size
+            
+            meta = {
+                'pagination': {
+                    'current_page': page,
+                    'page_size': page_size,
+                    'total_count': total_count,
+                    'total_pages': total_pages,
+                    'has_next': page < total_pages,
+                    'has_previous': page > 1
+                }
+            }
             
             return {
                 'data': serializer.data,
                 'message': 'Documents retrieved successfully',
-                'status': status.HTTP_200_OK
+                'status': status.HTTP_200_OK,
+                'meta': meta
             }
         except Exception as e:
             return {
@@ -293,17 +173,9 @@ class DocumentController:
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR
             }
     
-    def add_document(self, user, kb_id, request_data):
-        """Add a document to a knowledge base and create embeddings"""
+    def create_document(self, user, request_data):
+        """Create a new document"""
         try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
             serializer = CreateDocumentSerializer(data=request_data)
             if not serializer.is_valid():
                 return {
@@ -313,11 +185,11 @@ class DocumentController:
                     'errors': serializer.errors
                 }
             
-            # Add document and create embeddings
-            document = self.rag_service.add_document_to_knowledge_base(
-                knowledge_base=knowledge_base,
+            document = self.rag_service.add_document(
+                user=user,
                 title=serializer.validated_data['title'],
                 content=serializer.validated_data['content'],
+                category=serializer.validated_data.get('category', 'general'),
                 source_url=serializer.validated_data.get('source_url'),
                 metadata=serializer.validated_data.get('metadata')
             )
@@ -325,28 +197,20 @@ class DocumentController:
             response_serializer = DocumentSerializer(document)
             return {
                 'data': response_serializer.data,
-                'message': 'Document added and embeddings created successfully',
+                'message': 'Document created successfully',
                 'status': status.HTTP_201_CREATED
             }
         except Exception as e:
             return {
                 'data': None,
-                'message': f'Failed to add document: {str(e)}',
+                'message': f'Failed to create document: {str(e)}',
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR
             }
     
-    def get_document(self, user, kb_id, doc_id):
+    def get_document(self, user, doc_id):
         """Get a specific document"""
         try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
-            document = self.rag_service.get_document_by_id(doc_id, knowledge_base)
+            document = self.rag_service.get_document_by_id(doc_id, user)
             if not document:
                 return {
                     'data': None,
@@ -367,18 +231,10 @@ class DocumentController:
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR
             }
     
-    def update_document(self, user, kb_id, doc_id, request_data):
-        """Update a document and regenerate embeddings"""
+    def update_document(self, user, doc_id, request_data):
+        """Update a document"""
         try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
-            document = self.rag_service.get_document_by_id(doc_id, knowledge_base)
+            document = self.rag_service.get_document_by_id(doc_id, user)
             if not document:
                 return {
                     'data': None,
@@ -395,14 +251,12 @@ class DocumentController:
                     'errors': serializer.errors
                 }
             
-            updated_document = self.rag_service.update_document_and_embeddings(
-                document, serializer.validated_data
-            )
+            updated_document = self.rag_service.update_document(document, **serializer.validated_data)
             response_serializer = DocumentSerializer(updated_document)
             
             return {
                 'data': response_serializer.data,
-                'message': 'Document updated and embeddings regenerated successfully',
+                'message': 'Document updated successfully',
                 'status': status.HTTP_200_OK
             }
         except Exception as e:
@@ -412,18 +266,10 @@ class DocumentController:
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR
             }
     
-    def delete_document(self, user, kb_id, doc_id):
+    def delete_document(self, user, doc_id):
         """Soft delete a document"""
         try:
-            knowledge_base = self.kb_service.get_knowledge_base_by_id(kb_id, user)
-            if not knowledge_base:
-                return {
-                    'data': None,
-                    'message': 'Knowledge base not found',
-                    'status': status.HTTP_404_NOT_FOUND
-                }
-            
-            document = self.rag_service.get_document_by_id(doc_id, knowledge_base)
+            document = self.rag_service.get_document_by_id(doc_id, user)
             if not document:
                 return {
                     'data': None,

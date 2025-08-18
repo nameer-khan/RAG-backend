@@ -1,217 +1,202 @@
-import requests
-import json
 import logging
+import hashlib
+import requests
+from typing import List, Dict, Any, Optional, Tuple
 from django.conf import settings
-from django.core.cache import cache
-from .models import KnowledgeBase, Document, DocumentChunk, RAGQuery
-from typing import List, Dict, Any, Optional
+from django.core.paginator import Paginator
+from .models import Document, DocumentChunk, RAGQuery
 
 logger = logging.getLogger(__name__)
 
 
 class NubiousRAGService:
     """
-    Service class for interacting with Nubious RAG API.
+    Service to interact with Nubious RAG API.
+    Mocked for development - replace with actual API calls when ready.
     """
     
     def __init__(self):
-        self.api_key = settings.NUBIOUS_API_KEY
-        self.base_url = "https://api.nubious.ai"  # Replace with actual Nubious API URL
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
+        self.base_url = getattr(settings, 'NUBIOUS_API_URL', 'https://api.nubious.ai')
+        self.api_key = getattr(settings, 'NUBIOUS_API_KEY', 'mock_key')
     
-    def _make_request(self, endpoint: str, method: str = "GET", data: Dict = None) -> Dict:
+    def search_documents(self, query: str, category: str = None, limit: int = 5) -> List[Dict[str, Any]]:
         """
-        Make a request to the Nubious API.
+        Search for relevant documents using Nubious API.
+        Mocked for development.
         """
         try:
-            url = f"{self.base_url}{endpoint}"
+            # Mock response for development
+            mock_results = [
+                {
+                    'id': f"doc_{hashlib.md5(f'{query}_{i}'.encode()).hexdigest()[:8]}",
+                    'content': f"Mock document content {i} related to: {query}",
+                    'score': 0.9 - (i * 0.1),
+                    'metadata': {'source': 'mock', 'category': category or 'general'}
+                }
+                for i in range(min(limit, 3))
+            ]
             
-            if method.upper() == "GET":
-                response = requests.get(url, headers=self.headers, params=data)
-            elif method.upper() == "POST":
-                response = requests.post(url, headers=self.headers, json=data)
-            else:
-                raise ValueError(f"Unsupported HTTP method: {method}")
+            logger.info(f"Mock search results for query: {query}")
+            return mock_results
             
-            response.raise_for_status()
-            return response.json()
-            
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Nubious API request failed: {str(e)}")
-            raise Exception(f"Failed to communicate with Nubious API: {str(e)}")
-    
-    def search_documents(self, query: str, knowledge_base_id: str = None, limit: int = 5) -> List[Dict]:
-        """
-        Search for relevant documents using Nubious RAG.
-        """
-        try:
-            data = {
-                "query": query,
-                "limit": limit
-            }
-            
-            if knowledge_base_id:
-                data["knowledge_base_id"] = knowledge_base_id
-            
-            response = self._make_request("/search", method="POST", data=data)
-            
-            # Extract relevant information from response
-            results = []
-            for result in response.get("results", []):
-                results.append({
-                    "content": result.get("content", ""),
-                    "source": result.get("source", ""),
-                    "score": result.get("score", 0.0),
-                    "metadata": result.get("metadata", {})
-                })
-            
-            return results
+            # Uncomment when ready to use real API:
+            # url = f"{self.base_url}/search"
+            # headers = {'Authorization': f'Bearer {self.api_key}'}
+            # params = {'query': query, 'limit': limit}
+            # if category:
+            #     params['category'] = category
+            # 
+            # response = requests.get(url, headers=headers, params=params)
+            # response.raise_for_status()
+            # return response.json()['results']
             
         except Exception as e:
-            logger.error(f"Document search failed: {str(e)}")
+            logger.error(f"Failed to search documents: {str(e)}")
             return []
     
-    def generate_response(self, query: str, context: List[Dict], conversation_history: List[Dict] = None) -> str:
+    def generate_response(self, query: str, context: List[str]) -> str:
         """
-        Generate a response using Nubious RAG with retrieved context.
+        Generate response using Nubious API.
+        Mocked for development.
         """
         try:
-            data = {
-                "query": query,
-                "context": context,
-                "conversation_history": conversation_history or []
-            }
+            # Mock response for development
+            context_text = " ".join(context[:2])  # Use first 2 context items
+            mock_response = f"Based on the provided context, here's what I found about '{query}': {context_text}. This is a mock response generated for development purposes."
             
-            response = self._make_request("/generate", method="POST", data=data)
+            logger.info(f"Mock response generated for query: {query}")
+            return mock_response
             
-            return response.get("response", "")
+            # Uncomment when ready to use real API:
+            # url = f"{self.base_url}/generate"
+            # headers = {'Authorization': f'Bearer {self.api_key}'}
+            # data = {
+            #     'query': query,
+            #     'context': context
+            # }
+            # 
+            # response = requests.post(url, headers=headers, json=data)
+            # response.raise_for_status()
+            # return response.json()['response']
             
         except Exception as e:
-            logger.error(f"Response generation failed: {str(e)}")
-            return "I apologize, but I'm unable to generate a response at the moment. Please try again later."
+            logger.error(f"Failed to generate response: {str(e)}")
+            return f"I apologize, but I encountered an error while processing your query: {query}"
     
     def create_embedding(self, text: str) -> str:
         """
-        Create an embedding for text using Nubious API.
+        Create embedding using Nubious API.
+        Mocked for development.
         """
         try:
-            data = {"text": text}
-            response = self._make_request("/embeddings", method="POST", data=data)
-            return response.get("embedding_id", "")
+            # Mock embedding ID for development
+            embedding_id = f"emb_{hashlib.md5(text.encode()).hexdigest()[:16]}"
+            
+            logger.info(f"Mock embedding created for text: {text[:50]}...")
+            return embedding_id
+            
+            # Uncomment when ready to use real API:
+            # url = f"{self.base_url}/embeddings"
+            # headers = {'Authorization': f'Bearer {self.api_key}'}
+            # data = {'text': text}
+            # 
+            # response = requests.post(url, headers=headers, json=data)
+            # response.raise_for_status()
+            # return response.json()['embedding_id']
             
         except Exception as e:
-            logger.error(f"Embedding creation failed: {str(e)}")
-            return ""
+            logger.error(f"Failed to create embedding: {str(e)}")
+            return f"mock_embedding_{hashlib.md5(text.encode()).hexdigest()[:8]}"
 
 
 class RAGPipelineService:
     """
-    Service class for managing the complete RAG pipeline.
+    Service for RAG pipeline operations.
+    Simplified: Works directly with documents, no knowledge bases.
     """
     
     def __init__(self):
         self.nubious_service = NubiousRAGService()
     
-    def process_query(self, user, query: str, session_id: str = None, knowledge_base_id: str = None) -> Dict[str, Any]:
+    def process_query(self, user, query: str, document_category: str = None, conversation_history: List[Dict] = None) -> Dict[str, Any]:
         """
-        Process a user query through the complete RAG pipeline.
+        Process a RAG query and generate a response.
+        Simplified: Uses document category instead of knowledge base ID.
         """
         try:
-            # Step 1: Search for relevant documents
+            # Search for relevant documents
             search_results = self.nubious_service.search_documents(
-                query=query,
-                knowledge_base_id=knowledge_base_id,
+                query=query, 
+                category=document_category,
                 limit=5
             )
             
-            # Step 2: Get conversation history if session is provided
-            conversation_history = []
-            if session_id:
-                from chat.services import ChatSessionService, ChatMessageService
-                session_service = ChatSessionService()
-                message_service = ChatMessageService()
-                
-                session = session_service.get_session_by_id(session_id, user)
-                if session:
-                    messages = message_service.get_conversation_history(session, limit=10)
-                    conversation_history = [
-                        {
-                            "role": msg.sender,
-                            "content": msg.content
-                        }
-                        for msg in messages
-                    ]
+            if not search_results:
+                return {
+                    'query': query,
+                    'response': "I couldn't find any relevant information to answer your question.",
+                    'context': [],
+                    'sources': []
+                }
             
-            # Step 3: Generate response with context
-            response = self.nubious_service.generate_response(
-                query=query,
-                context=search_results,
-                conversation_history=conversation_history
-            )
+            # Extract context from search results
+            context = [result['content'] for result in search_results]
+            sources = [result['metadata'] for result in search_results]
             
-            # Step 4: Store the RAG query
+            # Generate response
+            response = self.nubious_service.generate_response(query, context)
+            
+            # Store the query
             rag_query = RAGQuery.objects.create(
                 user=user,
                 query=query,
                 response=response,
-                retrieved_context={
-                    "sources": [result.get("source", "") for result in search_results],
-                    "scores": [result.get("score", 0.0) for result in search_results],
-                    "context_count": len(search_results)
-                },
-                knowledge_base_id=knowledge_base_id,
+                document_category=document_category or 'general',
                 metadata={
-                    "session_id": session_id,
-                    "conversation_history_length": len(conversation_history)
+                    'context_count': len(context),
+                    'sources': sources,
+                    'conversation_history_length': len(conversation_history or [])
                 }
             )
             
-            # Step 5: Return the complete response
+            logger.info(f"RAG query processed successfully: {rag_query.id}")
+            
             return {
-                "response": response,
-                "context": search_results,
-                "rag_query_id": str(rag_query.id),
-                "sources": [result.get("source", "") for result in search_results]
+                'query': query,
+                'response': response,
+                'context': context,
+                'sources': sources,
+                'query_id': str(rag_query.id)
             }
             
         except Exception as e:
-            logger.error(f"RAG pipeline processing failed: {str(e)}")
-            return {
-                "response": "I apologize, but I encountered an error while processing your query. Please try again.",
-                "context": [],
-                "rag_query_id": None,
-                "sources": [],
-                "error": str(e)
-            }
+            logger.error(f"Failed to process RAG query: {str(e)}")
+            return None
     
-    def add_document_to_knowledge_base(self, knowledge_base_id: str, title: str, content: str, file_path: str = None) -> Document:
+    def add_document(self, user, title: str, content: str, category: str = 'general', source_url: str = None, metadata: Dict = None) -> Document:
         """
-        Add a document to the knowledge base and create embeddings.
+        Add a document and create embeddings.
+        Simplified: No knowledge base required.
         """
         try:
-            # Get or create knowledge base
-            knowledge_base = KnowledgeBase.objects.get(id=knowledge_base_id, is_active=True)
-            
             # Create document
             document = Document.objects.create(
-                knowledge_base=knowledge_base,
+                user=user,
                 title=title,
                 content=content,
-                file_path=file_path or "",
-                metadata={"source": "manual_upload"}
+                category=category,
+                source_url=source_url,
+                metadata=metadata or {}
             )
             
             # Create embeddings for document chunks
             self._create_document_embeddings(document)
             
-            logger.info(f"Added document {document.id} to knowledge base {knowledge_base_id}")
+            logger.info(f"Added document {document.id} for user {user.id}")
             return document
             
         except Exception as e:
-            logger.error(f"Failed to add document to knowledge base: {str(e)}")
+            logger.error(f"Failed to add document: {str(e)}")
             raise
     
     def _create_document_embeddings(self, document: Document):
@@ -242,59 +227,88 @@ class RAGPipelineService:
         except Exception as e:
             logger.error(f"Failed to create embeddings for document {document.id}: {str(e)}")
             raise
-
-
-class KnowledgeBaseService:
-    """
-    Service class for managing knowledge bases.
-    """
     
-    def create_knowledge_base(self, user, name: str, description: str = "") -> KnowledgeBase:
+    def get_user_documents(self, user, category: str = None, page: int = 1, page_size: int = 20) -> Tuple[List[Document], int]:
         """
-        Create a new knowledge base for a user.
+        Get documents for a user with optional category filtering.
         """
         try:
-            knowledge_base = KnowledgeBase.objects.create(
-                user=user,
-                name=name,
-                description=description
-            )
+            queryset = Document.objects.filter(user=user, is_active=True)
             
-            logger.info(f"Created knowledge base {knowledge_base.id} for user {user.id}")
-            return knowledge_base
+            if category:
+                queryset = queryset.filter(category=category)
+            
+            paginator = Paginator(queryset, page_size)
+            documents = paginator.get_page(page)
+            
+            return list(documents), paginator.count
             
         except Exception as e:
-            logger.error(f"Failed to create knowledge base for user {user.id}: {str(e)}")
-            raise
+            logger.error(f"Failed to get user documents: {str(e)}")
+            return [], 0
     
-    def get_user_knowledge_bases(self, user) -> List[KnowledgeBase]:
+    def get_document_by_id(self, document_id: str, user) -> Optional[Document]:
         """
-        Get all knowledge bases for a user.
-        """
-        return KnowledgeBase.objects.filter(user=user, is_active=True).order_by('-created_at')
-    
-    def get_knowledge_base_by_id(self, knowledge_base_id: str, user) -> Optional[KnowledgeBase]:
-        """
-        Get a specific knowledge base by ID.
+        Get a specific document by ID.
         """
         try:
-            return KnowledgeBase.objects.get(id=knowledge_base_id, user=user, is_active=True)
-        except KnowledgeBase.DoesNotExist:
+            return Document.objects.get(id=document_id, user=user, is_active=True)
+        except Document.DoesNotExist:
             return None
     
-    def delete_knowledge_base(self, knowledge_base: KnowledgeBase):
+    def update_document(self, document: Document, **kwargs) -> Document:
         """
-        Soft delete a knowledge base and all its documents.
+        Update a document and regenerate embeddings if content changed.
         """
         try:
-            # Soft delete all documents
-            knowledge_base.documents.filter(is_active=True).update(is_active=False)
+            content_changed = 'content' in kwargs and kwargs['content'] != document.content
             
-            # Soft delete the knowledge base
-            knowledge_base.soft_delete()
+            # Update document
+            for field, value in kwargs.items():
+                setattr(document, field, value)
+            document.save()
             
-            logger.info(f"Deleted knowledge base {knowledge_base.id}")
+            # Regenerate embeddings if content changed
+            if content_changed:
+                # Delete old chunks
+                document.chunks.all().delete()
+                # Create new embeddings
+                self._create_document_embeddings(document)
+            
+            logger.info(f"Updated document {document.id}")
+            return document
             
         except Exception as e:
-            logger.error(f"Failed to delete knowledge base {knowledge_base.id}: {str(e)}")
+            logger.error(f"Failed to update document {document.id}: {str(e)}")
             raise
+    
+    def delete_document(self, document: Document):
+        """
+        Soft delete a document.
+        """
+        try:
+            document.is_active = False
+            document.save()
+            logger.info(f"Deleted document {document.id}")
+        except Exception as e:
+            logger.error(f"Failed to delete document {document.id}: {str(e)}")
+            raise
+    
+    def get_user_rag_history(self, user, page: int = 1, page_size: int = 20, document_category: str = None) -> Tuple[List[RAGQuery], int]:
+        """
+        Get RAG query history for a user with pagination.
+        """
+        try:
+            queryset = RAGQuery.objects.filter(user=user, is_active=True)
+            
+            if document_category:
+                queryset = queryset.filter(document_category=document_category)
+            
+            paginator = Paginator(queryset, page_size)
+            queries = paginator.get_page(page)
+            
+            return list(queries), paginator.count
+            
+        except Exception as e:
+            logger.error(f"Failed to get RAG history: {str(e)}")
+            return [], 0

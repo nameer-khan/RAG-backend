@@ -1,0 +1,480 @@
+{
+	"info": {
+		"_postman_id": "simplified-rag-api",
+		"name": "Simplified RAG API Collection",
+		"description": "Simplified RAG Backend API Collection - Only 3 core APIs: Auth, Chat, Documents",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\",\n  \"password\": \"securepassword123\",\n  \"password_confirm\": \"securepassword123\",\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/register/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"register",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Login (Get JWT Token)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"testuser\",\n  \"password\": \"securepassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/token/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"token",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/token/refresh/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"token",
+								"refresh",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/users/profile/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"profile",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Create Chat Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"My Chat Session\",\n  \"metadata\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sessions/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sessions",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "List Chat Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/sessions/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sessions",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Send Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sender\": \"user\",\n  \"content\": \"Hello, how are you?\",\n  \"context\": {},\n  \"metadata\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/sessions/{{session_id}}/messages/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Session Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/sessions/{{session_id}}/messages/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Documents",
+			"item": [
+				{
+					"name": "Create Document",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Machine Learning Basics\",\n  \"content\": \"Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions from data without being explicitly programmed.\",\n  \"category\": \"technology\",\n  \"source_url\": \"https://example.com/article\",\n  \"metadata\": {\n    \"author\": \"John Doe\",\n    \"tags\": [\"AI\", \"ML\"]\n  }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/documents/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "List Documents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/documents/?category=technology&page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								""
+							],
+							"query": [
+								{
+									"key": "category",
+									"value": "technology"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							]
+						}
+					}
+				},
+				{
+					"name": "Get Document",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Update Document",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"title\": \"Updated Machine Learning Basics\",\n  \"content\": \"Updated content about machine learning...\",\n  \"category\": \"updated_technology\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Delete Document",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/documents/{{document_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"documents",
+								"{{document_id}}",
+								""
+							]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "RAG Query",
+			"item": [
+				{
+					"name": "Process RAG Query",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"query\": \"What is machine learning?\",\n  \"document_category\": \"technology\",\n  \"conversation_history\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"Tell me about AI\"\n    },\n    {\n      \"role\": \"assistant\",\n      \"content\": \"AI is...\"\n    }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/rag/query/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rag",
+								"query",
+								""
+							]
+						}
+					}
+				},
+				{
+					"name": "Get RAG History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/rag/queries/history/?document_category=technology&page=1&page_size=20",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"rag",
+								"queries",
+								"history",
+								""
+							],
+							"query": [
+								{
+									"key": "document_category",
+									"value": "technology"
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "page_size",
+									"value": "20"
+								}
+							]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000/api/v1",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "your_jwt_access_token_here",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "your_jwt_refresh_token_here",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "your_session_id_here",
+			"type": "string"
+		},
+		{
+			"key": "document_id",
+			"value": "your_document_id_here",
+			"type": "string"
+		}
+	]
+}

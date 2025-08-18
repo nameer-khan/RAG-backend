@@ -1,0 +1,1181 @@
+{
+	"info": {
+		"_postman_id": "rag-backend-api-collection",
+		"name": "RAG Backend API Collection",
+		"description": "Complete API collection for RAG Chat Backend with JWT authentication, chat management, and RAG functionality",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Get JWT Tokens",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"your_username\",\n    \"password\": \"your_password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/token/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"token",
+								""
+							]
+						},
+						"description": "Login to get access and refresh tokens"
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Access Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/token/refresh/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"token",
+								"refresh",
+								""
+							]
+						},
+						"description": "Refresh access token using refresh token"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"token\": \"{{access_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/token/verify/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"token",
+								"verify",
+								""
+							]
+						},
+						"description": "Verify if access token is valid"
+					},
+					"response": []
+				}
+			],
+			"description": "JWT Authentication endpoints"
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Register User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"newuser\",\n    \"email\": \"newuser@example.com\",\n    \"password\": \"securepassword123\",\n    \"password_confirm\": \"securepassword123\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/register/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"register",
+								""
+							]
+						},
+						"description": "Register a new user account"
+					},
+					"response": []
+				},
+				{
+					"name": "Get User Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/profile/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"profile",
+								""
+							]
+						},
+						"description": "Get current user's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Update User Profile",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"first_name\": \"Updated First Name\",\n    \"last_name\": \"Updated Last Name\",\n    \"email\": \"updated@example.com\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/profile/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"profile",
+								""
+							]
+						},
+						"description": "Update current user's profile information"
+					},
+					"response": []
+				},
+				{
+					"name": "Change Password",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"old_password\": \"currentpassword\",\n    \"new_password\": \"newsecurepassword123\",\n    \"new_password_confirm\": \"newsecurepassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/users/change-password/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"change-password",
+								""
+							]
+						},
+						"description": "Change user's password"
+					},
+					"response": []
+				}
+			],
+			"description": "User registration and profile management endpoints"
+		},
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/health/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"health",
+								""
+							]
+						},
+						"description": "Check if the API is running and healthy"
+					},
+					"response": []
+				}
+			],
+			"description": "Health monitoring endpoints"
+		},
+		{
+			"name": "Chat Sessions",
+			"item": [
+				{
+					"name": "List Chat Sessions",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								""
+							]
+						},
+						"description": "Get all chat sessions for the authenticated user"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Chat Session",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New Chat Session\",\n    \"is_favorite\": false\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								""
+							]
+						},
+						"description": "Create a new chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Chat Session Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								""
+							]
+						},
+						"description": "Get details of a specific chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Chat Session",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Chat Session\",\n    \"is_favorite\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								""
+							]
+						},
+						"description": "Update a chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Chat Session",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								""
+							]
+						},
+						"description": "Delete a chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Rename Chat Session",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"New Session Name\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/rename/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"rename",
+								""
+							]
+						},
+						"description": "Rename a chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Toggle Favorite",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/toggle-favorite/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"toggle-favorite",
+								""
+							]
+						},
+						"description": "Toggle favorite status of a chat session"
+					},
+					"response": []
+				}
+			],
+			"description": "Chat session management endpoints"
+		},
+		{
+			"name": "Chat Messages",
+			"item": [
+				{
+					"name": "List Messages",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								""
+							]
+						},
+						"description": "Get all messages in a chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Message",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sender\": \"user\",\n    \"content\": \"Hello, how are you?\",\n    \"context\": {},\n    \"metadata\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								""
+							]
+						},
+						"description": "Create a new message in a chat session"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Message Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages/{{message_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								"{{message_id}}",
+								""
+							]
+						},
+						"description": "Get details of a specific message"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Message",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"sender\": \"user\",\n    \"content\": \"Updated message content\",\n    \"context\": {},\n    \"metadata\": {}\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages/{{message_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								"{{message_id}}",
+								""
+							]
+						},
+						"description": "Update a message"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Message",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/messages/{{message_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"messages",
+								"{{message_id}}",
+								""
+							]
+						},
+						"description": "Delete a message"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Conversation History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/sessions/{{session_id}}/history/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"sessions",
+								"{{session_id}}",
+								"history",
+								""
+							]
+						},
+						"description": "Get complete conversation history for a session"
+					},
+					"response": []
+				}
+			],
+			"description": "Chat message management endpoints"
+		},
+		{
+			"name": "RAG Query",
+			"item": [
+				{
+					"name": "Process RAG Query",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"query\": \"What is machine learning?\",\n    \"knowledge_base_id\": \"{{knowledge_base_id}}\",\n    \"metadata\": {\n        \"source\": \"api\",\n        \"session_id\": \"{{session_id}}\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/query/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"query",
+								""
+							]
+						},
+						"description": "Process a RAG query and get AI response with context"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Query History",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/queries/history/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"queries",
+								"history",
+								""
+							]
+						},
+						"description": "Get history of RAG queries for the authenticated user"
+					},
+					"response": []
+				}
+			],
+			"description": "RAG query processing endpoints"
+		},
+		{
+			"name": "Knowledge Bases",
+			"item": [
+				{
+					"name": "List Knowledge Bases",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								""
+							]
+						},
+						"description": "Get all knowledge bases for the authenticated user"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Knowledge Base",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"My Knowledge Base\",\n    \"description\": \"A knowledge base for machine learning topics\",\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								""
+							]
+						},
+						"description": "Create a new knowledge base"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Knowledge Base Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								""
+							]
+						},
+						"description": "Get details of a specific knowledge base"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Knowledge Base",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Updated Knowledge Base\",\n    \"description\": \"Updated description\",\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								""
+							]
+						},
+						"description": "Update a knowledge base"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Knowledge Base",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								""
+							]
+						},
+						"description": "Delete a knowledge base"
+					},
+					"response": []
+				}
+			],
+			"description": "Knowledge base management endpoints"
+		},
+		{
+			"name": "Documents",
+			"item": [
+				{
+					"name": "List Documents",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/documents/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								"documents",
+								""
+							]
+						},
+						"description": "Get all documents in a knowledge base"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Document",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Machine Learning Basics\",\n    \"content\": \"Machine learning is a subset of artificial intelligence that enables computers to learn and make decisions without being explicitly programmed.\",\n    \"file_path\": \"/documents/ml_basics.txt\",\n    \"file_type\": \"text\",\n    \"metadata\": {\n        \"author\": \"John Doe\",\n        \"category\": \"AI/ML\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/documents/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								"documents",
+								""
+							]
+						},
+						"description": "Create a new document in a knowledge base"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Document Detail",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/documents/{{document_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								"documents",
+								"{{document_id}}",
+								""
+							]
+						},
+						"description": "Get details of a specific document"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Document",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"title\": \"Updated Document Title\",\n    \"content\": \"Updated document content with more information about machine learning.\",\n    \"file_path\": \"/documents/updated_ml_basics.txt\",\n    \"file_type\": \"text\",\n    \"metadata\": {\n        \"author\": \"John Doe\",\n        \"category\": \"AI/ML\",\n        \"version\": \"2.0\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/documents/{{document_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								"documents",
+								"{{document_id}}",
+								""
+							]
+						},
+						"description": "Update a document"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Document",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{access_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/rag/knowledge-bases/{{knowledge_base_id}}/documents/{{document_id}}/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"rag",
+								"knowledge-bases",
+								"{{knowledge_base_id}}",
+								"documents",
+								"{{document_id}}",
+								""
+							]
+						},
+						"description": "Delete a document"
+					},
+					"response": []
+				}
+			],
+			"description": "Document management endpoints"
+		},
+		{
+			"name": "Documentation",
+			"item": [
+				{
+					"name": "Swagger UI",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/swagger/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"swagger",
+								""
+							]
+						},
+						"description": "Interactive API documentation"
+					},
+					"response": []
+				},
+				{
+					"name": "ReDoc",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/redoc/",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"redoc",
+								""
+							]
+						},
+						"description": "Alternative API documentation"
+					},
+					"response": []
+				}
+			],
+			"description": "API documentation endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "session_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "message_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "knowledge_base_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "document_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

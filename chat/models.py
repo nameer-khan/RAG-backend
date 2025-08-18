@@ -6,77 +6,57 @@ import uuid
 
 class ChatSession(BaseModel):
     """
-    Model to store chat sessions for users.
+    Model to store chat sessions.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    title = models.CharField(max_length=255)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_sessions')
-    title = models.CharField(max_length=255, default="New Chat")
     is_favorite = models.BooleanField(default=False)
-    last_message_at = models.DateTimeField(null=True, blank=True)
+    is_active = models.BooleanField(default=True)
+    metadata = models.JSONField(default=dict, blank=True)
     
     class Meta:
         db_table = 'chat_sessions'
-        ordering = ['-last_message_at', '-created_at']
+        ordering = ['-updated_at']
         indexes = [
             models.Index(fields=['user', 'is_active']),
-            models.Index(fields=['user', 'is_favorite']),
-            models.Index(fields=['last_message_at']),
+            models.Index(fields=['is_favorite']),
         ]
     
     def __str__(self):
         return f"{self.title} - {self.user.username}"
-    
-    def update_last_message_time(self):
-        """Update the last message timestamp."""
-        from django.utils import timezone
-        self.last_message_at = timezone.now()
-        self.save(update_fields=['last_message_at'])
-    
-    @property
-    def message_count(self):
-        """Get the count of messages in this session."""
-        return self.messages.filter(is_active=True).count()
 
 
 class ChatMessage(BaseModel):
     """
-    Model to store individual chat messages within sessions.
+    Model to store chat messages with integrated RAG functionality.
+    Simplified: No separate RAG API needed.
     """
-    SENDER_CHOICES = [
-        ('user', 'User'),
-        ('assistant', 'Assistant'),
-    ]
-    
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
-    sender = models.CharField(max_length=10, choices=SENDER_CHOICES)
+    sender = models.CharField(max_length=20, choices=[
+        ('user', 'User'),
+        ('assistant', 'Assistant')
+    ])
     content = models.TextField()
-    context = models.JSONField(default=dict, blank=True, help_text="Retrieved context for RAG responses")
-    metadata = models.JSONField(default=dict, blank=True, help_text="Additional metadata about the message")
+    
+    # RAG-specific fields (integrated into chat messages)
+    document_category = models.CharField(max_length=100, blank=True, help_text='Category of documents used for RAG response')
+    rag_context = models.JSONField(default=dict, blank=True, help_text='Context retrieved from documents')
+    rag_sources = models.JSONField(default=list, blank=True, help_text='Sources used for RAG response')
+    
+    # Standard chat fields
+    context = models.JSONField(default=dict, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
     
     class Meta:
         db_table = 'chat_messages'
         ordering = ['created_at']
         indexes = [
             models.Index(fields=['session', 'created_at']),
-            models.Index(fields=['sender', 'created_at']),
+            models.Index(fields=['sender']),
+            models.Index(fields=['document_category']),
         ]
     
     def __str__(self):
-        return f"{self.sender} - {self.content[:50]}..."
-    
-    def save(self, *args, **kwargs):
-        """Override save to update session's last message time."""
-        is_new = self.pk is None
-        super().save(*args, **kwargs)
-        
-        if is_new:
-            self.session.update_last_message_time()
-    
-    @property
-    def formatted_content(self):
-        """Get formatted content with context if available."""
-        if self.context and self.sender == 'assistant':
-            context_info = f"\n\n**Retrieved Context:**\n{self.context.get('sources', [])}"
-            return self.content + context_info
-        return self.content
+        return f"{self.sender}: {self.content[:50]}... - {self.session.title}"

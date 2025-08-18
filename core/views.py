@@ -1,11 +1,14 @@
 from rest_framework import status
-from rest_framework.views import APIView
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
+from .serializers import StandardResponseSerializer, UserRegistrationSerializer, UserProfileSerializer
+from django.contrib.auth.models import User
 import logging
 
 logger = logging.getLogger(__name__)
@@ -207,54 +210,121 @@ class RetrieveUpdateDestroyAPIView(BaseAPIView):
         raise NotImplementedError
 
 
-class HealthCheckAPIView(BaseAPIView):
+class HealthCheckAPIView(APIView):
     """
-    Health check endpoint for monitoring the application status.
+    Health check endpoint to verify API is running.
     """
-    authentication_classes = []
-    permission_classes = []
+    permission_classes = [AllowAny]
     
-    def get(self, request, *args, **kwargs):
-        """
-        Return health status of the application.
-        """
-        from django.db import connection
-        from django.core.cache import cache
-        
-        health_status = {
+    def get(self, request):
+        return Response({
             'status': 'healthy',
-            'database': 'connected',
-            'cache': 'connected',
-            'timestamp': timezone.now().isoformat()
-        }
+            'message': 'RAG Backend API is running',
+            'version': '1.0.0'
+        })
+
+
+class UserRegistrationAPIView(APIView):
+    """
+    User registration endpoint.
+    """
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        """
+        Register a new user.
+        """
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            logger.info(f"New user registered: {user.username}")
+            return Response({
+                'message': 'User registered successfully',
+                'user': {
+                    'id': user.id,
+                    'username': user.username,
+                    'email': user.email,
+                    'first_name': user.first_name,
+                    'last_name': user.last_name
+                }
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserProfileAPIView(APIView):
+    """
+    User profile management endpoint.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        """
+        Get current user's profile.
+        """
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
+    
+    def put(self, request):
+        """
+        Update current user's profile.
+        """
+        serializer = UserProfileSerializer(request.user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            logger.info(f"User profile updated: {request.user.username}")
+            return Response({
+                'message': 'Profile updated successfully',
+                'user': serializer.data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePasswordAPIView(APIView):
+    """
+    Change password endpoint.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Change user's password.
+        """
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+        new_password_confirm = request.data.get('new_password_confirm')
         
-        # Check database connection
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1")
-            health_status['database'] = 'connected'
-        except Exception as e:
-            health_status['database'] = 'disconnected'
-            health_status['status'] = 'unhealthy'
-            logger.error(f"Database health check failed: {str(e)}")
+        if not old_password or not new_password or not new_password_confirm:
+            return Response({
+                'error': 'All password fields are required'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Check cache connection
-        try:
-            cache.set('health_check', 'ok', 10)
-            if cache.get('health_check') == 'ok':
-                health_status['cache'] = 'connected'
-            else:
-                health_status['cache'] = 'disconnected'
-                health_status['status'] = 'unhealthy'
-        except Exception as e:
-            health_status['cache'] = 'disconnected'
-            health_status['status'] = 'unhealthy'
-            logger.error(f"Cache health check failed: {str(e)}")
+        if new_password != new_password_confirm:
+            return Response({
+                'error': 'New passwords do not match'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        status_code = status.HTTP_200_OK if health_status['status'] == 'healthy' else status.HTTP_503_SERVICE_UNAVAILABLE
+        if not request.user.check_password(old_password):
+            return Response({
+                'error': 'Current password is incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
-        return self.success_response(
-            data=health_status,
-            message="Health check completed",
-            status_code=status_code
-        )
+        request.user.set_password(new_password)
+        request.user.save()
+        
+        logger.info(f"Password changed for user: {request.user.username}")
+        return Response({
+            'message': 'Password changed successfully'
+        })
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Simple health check endpoint.
+    """
+    return Response({
+        'status': 'healthy',
+        'message': 'RAG Backend API is running',
+        'version': '1.0.0'
+    })

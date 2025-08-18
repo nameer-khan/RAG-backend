@@ -124,7 +124,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Django REST Framework
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -234,21 +234,58 @@ LOGGING = {
     },
 }
 
-# API Key for authentication
-API_KEY = config('API_KEY', default='your-api-key-here')
-
 # Nubious API Key for RAG
 NUBIOUS_API_KEY = config('NUBIOUS_API_KEY', default='your-nubious-api-key-here')
 
 # New Relic Configuration
 NEW_RELIC_LICENSE_KEY = config('NEW_RELIC_LICENSE_KEY', default='')
+NEW_RELIC_API_KEY = config('NEW_RELIC_API_KEY', default='')
 NEW_RELIC_APP_NAME = config('NEW_RELIC_APP_NAME', default='RAG-Chat-Backend')
 NEW_RELIC_ENVIRONMENT = config('NEW_RELIC_ENVIRONMENT', default='development')
 
 # Initialize New Relic if license key is provided
-if NEW_RELIC_LICENSE_KEY and NEW_RELIC_LICENSE_KEY != 'your-newrelic-license-key-here':
+if NEW_RELIC_LICENSE_KEY and NEW_RELIC_LICENSE_KEY != '':
     import newrelic.agent
+    print(f"Initializing New Relic agent for app: {NEW_RELIC_APP_NAME}")
     newrelic.agent.initialize('newrelic.ini')
+    print("New Relic agent initialized successfully")
+else:
+    print("New Relic not initialized - license key condition not met")
+
+# JWT Configuration
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+    
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+    
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+    
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+    
+    'JTI_CLAIM': 'jti',
+    
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
 
 # Rate limiting
 RATE_LIMIT_PER_MINUTE = config('RATE_LIMIT_PER_MINUTE', default=100, cast=int)
