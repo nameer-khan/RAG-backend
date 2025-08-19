@@ -4,6 +4,8 @@ from .views import (
     RAGQueryHistoryAPIView,
     DocumentListCreateAPIView,
     DocumentDetailAPIView,
+    DocumentCategoriesAPIView,
+    DocumentSearchAPIView,
 )
 
 urlpatterns = [
@@ -14,4 +16,6 @@ urlpatterns = [
     # Documents (simplified - no knowledge base required)
     path('documents/', DocumentListCreateAPIView.as_view(), name='document-list-create'),
     path('documents/<uuid:pk>/', DocumentDetailAPIView.as_view(), name='document-detail'),
+    path('documents/categories/', DocumentCategoriesAPIView.as_view(), name='document-categories'),
+    path('documents/search/', DocumentSearchAPIView.as_view(), name='document-search'),
 ]

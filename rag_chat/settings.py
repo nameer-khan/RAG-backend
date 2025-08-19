@@ -234,8 +234,8 @@ LOGGING = {
     },
 }
 
-# Nubious API Key for RAG
-NUBIOUS_API_KEY = config('NUBIOUS_API_KEY', default='your-nubious-api-key-here')
+# OpenAI API Configuration for RAG
+OPENAI_API_KEY = config('OPENAI_API_KEY', default='your-openai-api-key-here')
 
 # New Relic Configuration
 NEW_RELIC_LICENSE_KEY = config('NEW_RELIC_LICENSE_KEY', default='')

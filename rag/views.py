@@ -101,3 +101,29 @@ class DocumentDetailAPIView(RetrieveUpdateDestroyAPIView):
         controller = DocumentController()
         result = controller.delete_document(request.user, pk)
         return Response(result['data'], status=result['status'])
+
+
+class DocumentCategoriesAPIView(BaseAPIView):
+    """
+    API to get document categories for a user.
+    """
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request, *args, **kwargs):
+        """Get document categories for the current user."""
+        controller = DocumentController()
+        result = controller.get_document_categories(request.user)
+        return Response(result['data'], status=result['status'])
+
+
+class DocumentSearchAPIView(BaseAPIView):
+    """
+    API to search user's documents.
+    """
+    authentication_classes = [JWTAuthentication]
+    
+    def get(self, request, *args, **kwargs):
+        """Search user's documents."""
+        controller = DocumentController()
+        result = controller.search_documents(request.user, request)
+        return Response(result['data'], status=result['status'])

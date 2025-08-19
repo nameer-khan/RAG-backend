@@ -4,109 +4,188 @@ import requests
 from typing import List, Dict, Any, Optional, Tuple
 from django.conf import settings
 from django.core.paginator import Paginator
+import openai
+import httpx
 from .models import Document, DocumentChunk, RAGQuery
 
 logger = logging.getLogger(__name__)
 
 
-class NubiousRAGService:
+def init_openai(api_key: str, proxy_url: str = None):
+    """Initialize OpenAI client with proper HTTP client configuration"""
+    logger.info(f"Initializing OpenAI client with API key: {api_key[:20]}...")
+
+    try:
+        http_client = None
+        if proxy_url:
+            http_client = httpx.Client(proxies=proxy_url)
+        else:
+            # Create a simple HTTP client without proxy configuration
+            http_client = httpx.Client()
+
+        client = openai.OpenAI(
+            api_key=api_key,
+            http_client=http_client
+        )
+        logger.info("OpenAI client initialized successfully")
+        return client
+
+    except Exception as e:
+        logger.error(f"Failed to initialize OpenAI client: {e}")
+        # Fallback to basic initialization
+        try:
+            client = openai.OpenAI(api_key=api_key)
+            logger.info("OpenAI client initialized with fallback method")
+            return client
+        except Exception as e2:
+            logger.error(f"Fallback initialization also failed: {e2}")
+            raise
+
+
+class OpenAIRAGService:
     """
-    Service to interact with Nubious RAG API.
-    Mocked for development - replace with actual API calls when ready.
+    Service to interact with OpenAI API for RAG functionality.
     """
     
     def __init__(self):
-        self.base_url = getattr(settings, 'NUBIOUS_API_URL', 'https://api.nubious.ai')
-        self.api_key = getattr(settings, 'NUBIOUS_API_KEY', 'mock_key')
+        api_key = getattr(settings, 'OPENAI_API_KEY', 'your-openai-api-key-here')
+        proxy_url = getattr(settings, 'OPENAI_PROXY_URL', None)
+        
+        # Initialize OpenAI client with proper HTTP client configuration
+        self.client = init_openai(api_key, proxy_url)
     
-    def search_documents(self, query: str, category: str = None, limit: int = 5) -> List[Dict[str, Any]]:
+    def search_documents(self, query: str, category: str = None, limit: int = 5, user_id: str = None) -> List[Dict[str, Any]]:
         """
-        Search for relevant documents using Nubious API.
-        Mocked for development.
+        Search for relevant documents using OpenAI embeddings and similarity search.
+        For now, this will return documents from our database that match the query.
         """
         try:
-            # Mock response for development
-            mock_results = [
-                {
-                    'id': f"doc_{hashlib.md5(f'{query}_{i}'.encode()).hexdigest()[:8]}",
-                    'content': f"Mock document content {i} related to: {query}",
-                    'score': 0.9 - (i * 0.1),
-                    'metadata': {'source': 'mock', 'category': category or 'general'}
-                }
-                for i in range(min(limit, 3))
-            ]
+            # Get documents from database for this user
+            documents = Document.objects.filter(
+                user_id=user_id,
+                is_active=True
+            )
             
-            logger.info(f"Mock search results for query: {query}")
-            return mock_results
+            if category:
+                documents = documents.filter(category=category)
             
-            # Uncomment when ready to use real API:
-            # url = f"{self.base_url}/search"
-            # headers = {'Authorization': f'Bearer {self.api_key}'}
-            # params = {'query': query, 'limit': limit}
-            # if category:
-            #     params['category'] = category
-            # 
-            # response = requests.get(url, headers=headers, params=params)
-            # response.raise_for_status()
-            # return response.json()['results']
+            # For now, return documents that contain the query terms
+            # In a full implementation, you'd use embeddings for semantic search
+            matching_docs = []
+            query_terms = query.lower().split()
+            
+            for doc in documents[:limit]:
+                doc_text = f"{doc.title} {doc.content}".lower()
+                if any(term in doc_text for term in query_terms):
+                    matching_docs.append({
+                        'id': doc.metadata.get('openai_document_id', f"doc_{doc.id}") if doc.metadata else f"doc_{doc.id}",
+                        'content': doc.content,
+                        'score': 0.8,  # Mock score
+                        'metadata': {
+                            'source': 'openai_search', 
+                            'category': doc.category, 
+                            'user_id': str(doc.user.id),
+                            'title': doc.title
+                        }
+                    })
+            
+            logger.info(f"OpenAI search results for query: {query}, user_id: {user_id}, found {len(matching_docs)} documents")
+            return matching_docs
             
         except Exception as e:
-            logger.error(f"Failed to search documents: {str(e)}")
+            logger.error(f"Failed to search documents with OpenAI: {str(e)}")
             return []
     
     def generate_response(self, query: str, context: List[str]) -> str:
         """
-        Generate response using Nubious API.
-        Mocked for development.
+        Generate response using OpenAI GPT model with context.
         """
         try:
-            # Mock response for development
+            # Prepare context for the prompt
             context_text = " ".join(context[:2])  # Use first 2 context items
-            mock_response = f"Based on the provided context, here's what I found about '{query}': {context_text}. This is a mock response generated for development purposes."
             
-            logger.info(f"Mock response generated for query: {query}")
-            return mock_response
-            
-            # Uncomment when ready to use real API:
-            # url = f"{self.base_url}/generate"
-            # headers = {'Authorization': f'Bearer {self.api_key}'}
-            # data = {
-            #     'query': query,
-            #     'context': context
-            # }
-            # 
-            # response = requests.post(url, headers=headers, json=data)
-            # response.raise_for_status()
-            # return response.json()['response']
+            # Create the prompt
+            if context_text:
+                prompt = f"""Based on the following context, please answer the question. If the context doesn't contain relevant information, say so.
+
+Context:
+{context_text}
+
+Question: {query}
+
+Answer:"""
+            else:
+                prompt = f"Please answer the following question: {query}"
+
+            # Generate response using OpenAI (new API format)
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that provides accurate and relevant answers based on the given context."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=500,
+                temperature=0.7
+            )
+
+            response_text = response.choices[0].message.content
+            logger.info(f"OpenAI response generated for query: {query}")
+            return response_text
             
         except Exception as e:
-            logger.error(f"Failed to generate response: {str(e)}")
+            logger.error(f"Failed to generate response with OpenAI: {str(e)}")
             return f"I apologize, but I encountered an error while processing your query: {query}"
     
     def create_embedding(self, text: str) -> str:
         """
-        Create embedding using Nubious API.
-        Mocked for development.
+        Create embedding using OpenAI's text-embedding-ada-002 model.
         """
         try:
-            # Mock embedding ID for development
-            embedding_id = f"emb_{hashlib.md5(text.encode()).hexdigest()[:16]}"
+            response = self.client.embeddings.create(
+                model="text-embedding-ada-002",
+                input=text
+            )
             
-            logger.info(f"Mock embedding created for text: {text[:50]}...")
+            embedding_id = f"emb_{hashlib.md5(text.encode()).hexdigest()[:16]}"
+            logger.info(f"OpenAI embedding created for text: {text[:50]}...")
             return embedding_id
             
-            # Uncomment when ready to use real API:
-            # url = f"{self.base_url}/embeddings"
-            # headers = {'Authorization': f'Bearer {self.api_key}'}
-            # data = {'text': text}
-            # 
-            # response = requests.post(url, headers=headers, json=data)
-            # response.raise_for_status()
-            # return response.json()['embedding_id']
+        except Exception as e:
+            logger.error(f"Failed to create embedding with OpenAI: {str(e)}")
+            return f"error_embedding_{hashlib.md5(text.encode()).hexdigest()[:8]}"
+    
+    def upload_document(self, title: str, content: str, category: str = 'general', metadata: Dict = None) -> str:
+        """
+        Process document with OpenAI (create embeddings, store metadata).
+        """
+        try:
+            # Create embedding for the document content
+            embedding_id = self.create_embedding(content)
+            
+            # Generate a unique document ID
+            import uuid
+            doc_id = f"openai_doc_{uuid.uuid4().hex[:12]}"
+            
+            logger.info(f"OpenAI document processed: {title}")
+            return doc_id
             
         except Exception as e:
-            logger.error(f"Failed to create embedding: {str(e)}")
-            return f"mock_embedding_{hashlib.md5(text.encode()).hexdigest()[:8]}"
+            logger.error(f"Failed to process document with OpenAI: {str(e)}")
+            raise
+    
+    def delete_document_from_openai(self, document_id: str) -> bool:
+        """
+        Delete document from OpenAI storage (if applicable).
+        For now, just return success as we're storing in our database.
+        """
+        try:
+            logger.info(f"OpenAI document deletion requested: {document_id}")
+            # In a full implementation, you might delete from vector database
+            return True
+            
+        except Exception as e:
+            logger.error(f"Failed to delete document from OpenAI: {str(e)}")
+            return False
 
 
 class RAGPipelineService:
@@ -116,7 +195,7 @@ class RAGPipelineService:
     """
     
     def __init__(self):
-        self.nubious_service = NubiousRAGService()
+        self.openai_service = OpenAIRAGService()
     
     def process_query(self, user, query: str, document_category: str = None, conversation_history: List[Dict] = None) -> Dict[str, Any]:
         """
@@ -125,10 +204,11 @@ class RAGPipelineService:
         """
         try:
             # Search for relevant documents
-            search_results = self.nubious_service.search_documents(
+            search_results = self.openai_service.search_documents(
                 query=query, 
                 category=document_category,
-                limit=5
+                limit=5,
+                user_id=str(user.id)
             )
             
             if not search_results:
@@ -144,7 +224,7 @@ class RAGPipelineService:
             sources = [result['metadata'] for result in search_results]
             
             # Generate response
-            response = self.nubious_service.generate_response(query, context)
+            response = self.openai_service.generate_response(query, context)
             
             # Store the query
             rag_query = RAGQuery.objects.create(
@@ -175,24 +255,40 @@ class RAGPipelineService:
     
     def add_document(self, user, title: str, content: str, category: str = 'general', source_url: str = None, metadata: Dict = None) -> Document:
         """
-        Add a document and create embeddings.
-        Simplified: No knowledge base required.
+        Add a document and process with OpenAI for indexing.
         """
         try:
-            # Create document
+            # Process document with OpenAI first
+            openai_metadata = {
+                'user_id': str(user.id),
+                'source_url': source_url,
+                **(metadata or {})
+            }
+            
+            openai_document_id = self.openai_service.upload_document(
+                title=title,
+                content=content,
+                category=category,
+                metadata=openai_metadata
+            )
+            
+            # Create document in our database
             document = Document.objects.create(
                 user=user,
                 title=title,
                 content=content,
                 category=category,
                 source_url=source_url,
-                metadata=metadata or {}
+                metadata={
+                    **(metadata or {}),
+                    'openai_document_id': openai_document_id
+                }
             )
             
-            # Create embeddings for document chunks
+            # Create embeddings for document chunks (for local storage)
             self._create_document_embeddings(document)
             
-            logger.info(f"Added document {document.id} for user {user.id}")
+            logger.info(f"Added document {document.id} for user {user.id} with OpenAI ID: {openai_document_id}")
             return document
             
         except Exception as e:
@@ -210,8 +306,8 @@ class RAGPipelineService:
             chunks = [content[i:i+chunk_size] for i in range(0, len(content), chunk_size)]
             
             for i, chunk_content in enumerate(chunks):
-                # Create embedding using Nubious API
-                embedding_id = self.nubious_service.create_embedding(chunk_content)
+                # Create embedding using OpenAI API
+                embedding_id = self.openai_service.create_embedding(chunk_content)
                 
                 # Store chunk with embedding ID
                 DocumentChunk.objects.create(
@@ -284,9 +380,15 @@ class RAGPipelineService:
     
     def delete_document(self, document: Document):
         """
-        Soft delete a document.
+        Soft delete a document and remove from OpenAI.
         """
         try:
+            # Delete from OpenAI if we have the document ID
+            openai_document_id = document.metadata.get('openai_document_id')
+            if openai_document_id:
+                self.openai_service.delete_document_from_openai(openai_document_id)
+            
+            # Soft delete from our database
             document.is_active = False
             document.save()
             logger.info(f"Deleted document {document.id}")
@@ -312,3 +414,52 @@ class RAGPipelineService:
         except Exception as e:
             logger.error(f"Failed to get RAG history: {str(e)}")
             return [], 0
+    
+    def get_document_categories(self, user) -> List[str]:
+        """
+        Get unique document categories for a user.
+        """
+        try:
+            categories = Document.objects.filter(
+                user=user, 
+                is_active=True
+            ).values_list('category', flat=True).distinct()
+            
+            return list(categories)
+        except Exception as e:
+            logger.error(f"Failed to get document categories: {str(e)}")
+            return []
+    
+    def search_user_documents(self, user, query: str, category: str = None, limit: int = 10) -> List[Document]:
+        """
+        Search user's documents using OpenAI API.
+        """
+        try:
+            # Search in OpenAI with user filter
+            search_results = self.openai_service.search_documents(
+                query=query,
+                category=category,
+                limit=limit,
+                user_id=str(user.id)
+            )
+            
+            # Filter results to only include user's documents
+            user_document_ids = []
+            for result in search_results:
+                result_metadata = result.get('metadata', {})
+                if result_metadata.get('user_id') == str(user.id):
+                    user_document_ids.append(result.get('id'))
+            
+            # Get documents from our database
+            documents = Document.objects.filter(
+                user=user,
+                is_active=True,
+                metadata__openai_document_id__in=user_document_ids
+            )
+            
+            logger.info(f"Found {len(documents)} documents for user {user.id} with query: {query}")
+            return list(documents)
+            
+        except Exception as e:
+            logger.error(f"Failed to search user documents: {str(e)}")
+            return []

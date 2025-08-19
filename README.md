@@ -84,6 +84,10 @@ cp env.example .env
 docker-compose up -d
 
 # Run migrations
+docker-compose exec web python manage.py makemigrations core
+docker-compose exec web python manage.py makemigrations chat
+docker-compose exec web python manage.py makemigrations rag
+docker-compose exec web python manage.py makemigrations logs
 docker-compose exec web python manage.py migrate
 
 # Create superuser and setup project

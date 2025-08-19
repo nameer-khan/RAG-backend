@@ -2,7 +2,7 @@ from django.db import transaction
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
-from .services import RAGPipelineService, NubiousRAGService
+from .services import RAGPipelineService, OpenAIRAGService
 from .serializers import (
     DocumentSerializer, CreateDocumentSerializer, RAGQuerySerializer, RAGQueryListSerializer
 )
@@ -13,7 +13,7 @@ class RAGController:
     
     def __init__(self):
         self.rag_service = RAGPipelineService()
-        self.nubious_service = NubiousRAGService()
+        self.openai_service = OpenAIRAGService()
     
     def process_rag_query(self, user, request_data):
         """Process a RAG query with search and generation"""
@@ -287,5 +287,60 @@ class DocumentController:
             return {
                 'data': None,
                 'message': f'Failed to delete document: {str(e)}',
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+            }
+    
+    def get_document_categories(self, user):
+        """Get document categories for a user"""
+        try:
+            categories = self.rag_service.get_document_categories(user)
+            return {
+                'data': {'categories': categories},
+                'message': 'Document categories retrieved successfully',
+                'status': status.HTTP_200_OK
+            }
+        except Exception as e:
+            return {
+                'data': None,
+                'message': f'Failed to retrieve document categories: {str(e)}',
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+            }
+    
+    def search_documents(self, user, request):
+        """Search user's documents"""
+        try:
+            query = request.query_params.get('query', '').strip()
+            category = request.query_params.get('category')
+            limit = request.query_params.get('limit', 10)
+            
+            if not query:
+                return {
+                    'data': None,
+                    'message': 'Search query is required',
+                    'status': status.HTTP_400_BAD_REQUEST
+                }
+            
+            try:
+                limit = int(limit)
+            except ValueError:
+                limit = 10
+            
+            documents = self.rag_service.search_user_documents(
+                user=user,
+                query=query,
+                category=category,
+                limit=limit
+            )
+            
+            serializer = DocumentSerializer(documents, many=True)
+            return {
+                'data': serializer.data,
+                'message': f'Found {len(documents)} documents matching "{query}"',
+                'status': status.HTTP_200_OK
+            }
+        except Exception as e:
+            return {
+                'data': None,
+                'message': f'Failed to search documents: {str(e)}',
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR
             }
