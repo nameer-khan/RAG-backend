@@ -73,6 +73,33 @@ class ChatSessionDetailAPIView(RetrieveUpdateDestroyAPIView):
         return Response(result, status=result['status'])
 
 
+class ChatSessionRenameAPIView(BaseAPIView):
+    """
+    API to rename a chat session.
+    """
+    authentication_classes = [JWTAuthentication]
+    
+    def patch(self, request, pk, *args, **kwargs):
+        """Rename a chat session."""
+        controller = ChatController()
+        new_title = request.data.get('title')
+        result = controller.rename_session(request.user, pk, new_title)
+        return Response(result, status=result['status'])
+
+
+class ChatSessionFavoriteAPIView(BaseAPIView):
+    """
+    API to toggle favorite status of a chat session.
+    """
+    authentication_classes = [JWTAuthentication]
+    
+    def patch(self, request, pk, *args, **kwargs):
+        """Toggle favorite status of a chat session."""
+        controller = ChatController()
+        result = controller.toggle_favorite(request.user, pk)
+        return Response(result, status=result['status'])
+
+
 class ChatMessageListCreateAPIView(BaseAPIView):
     """
     API to list and create messages in a chat session with integrated RAG.

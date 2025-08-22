@@ -118,7 +118,69 @@ class ChatController:
                 'message': f'Failed to update chat session: {str(e)}',
                 'status': status.HTTP_500_INTERNAL_SERVER_ERROR
             }
-    
+
+    def rename_session(self, user, session_id, new_title):
+        """Rename a chat session"""
+        try:
+            session = ChatSession.objects.get(id=session_id, user=user, is_active=True)
+            
+            if not new_title or not new_title.strip():
+                return {
+                    'data': None,
+                    'message': 'Title cannot be empty',
+                    'status': status.HTTP_400_BAD_REQUEST
+                }
+            
+            session.title = new_title.strip()
+            session.save()
+            
+            response_serializer = ChatSessionSerializer(session)
+            
+            return {
+                'data': response_serializer.data,
+                'message': 'Chat session renamed successfully',
+                'status': status.HTTP_200_OK
+            }
+        except ChatSession.DoesNotExist:
+            return {
+                'data': None,
+                'message': 'Chat session not found',
+                'status': status.HTTP_404_NOT_FOUND
+            }
+        except Exception as e:
+            return {
+                'data': None,
+                'message': f'Failed to rename chat session: {str(e)}',
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+            }
+
+    def toggle_favorite(self, user, session_id):
+        """Toggle favorite status of a chat session"""
+        try:
+            session = ChatSession.objects.get(id=session_id, user=user, is_active=True)
+            session.is_favorite = not session.is_favorite
+            session.save()
+            
+            response_serializer = ChatSessionSerializer(session)
+            
+            return {
+                'data': response_serializer.data,
+                'message': f'Chat session {"marked as favorite" if session.is_favorite else "removed from favorites"}',
+                'status': status.HTTP_200_OK
+            }
+        except ChatSession.DoesNotExist:
+            return {
+                'data': None,
+                'message': 'Chat session not found',
+                'status': status.HTTP_404_NOT_FOUND
+            }
+        except Exception as e:
+            return {
+                'data': None,
+                'message': f'Failed to toggle favorite status: {str(e)}',
+                'status': status.HTTP_500_INTERNAL_SERVER_ERROR
+            }
+
     def delete_session(self, user, session_id):
         """Soft delete a chat session"""
         try:
